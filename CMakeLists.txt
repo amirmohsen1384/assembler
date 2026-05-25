@@ -9,6 +9,8 @@ add_executable(Assembler
     src/main.c
     src/core/table.h
     src/core/table.c
+    src/core/general.c
+    src/core/general.h
 )
 
 target_include_directories(Assembler
