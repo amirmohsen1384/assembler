@@ -1,12 +1,10 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include <string.h>
-#include <stdint.h>
+#include "general.h"
 
-#define SYMBOL_USED 1
-#define LABEL_LENGTH 8
 #define SYMBOL_UNUSED 0
+#define SYMBOL_USED 1
 
 typedef struct Symbol
 {
@@ -21,7 +19,7 @@ int getLabelHash(const char *label, size_t size);
 #define INSERT_FAILED -1
 int insertLabel(Symbol *table, size_t size, Symbol value);
 
-#define FIND_FAILED -1
+#define NOT_FOUND -1
 int findByLabel(Symbol *table, size_t size, const char *label);
 
 #endif

@@ -1,4 +1,6 @@
 #include "table.h"
+#include <string.h>
+#include <stdint.h>
 
 int getLabelHash(const char *label, size_t size)
 {
@@ -12,7 +14,7 @@ int getLabelHash(const char *label, size_t size)
 
 int insertLabel(Symbol *table, size_t size, Symbol value)
 {
-    int position = getHash(value.label, size);
+    int position = getLabelHash(value.label, size);
     while(table[position].used == SYMBOL_USED)
     {
         if(!strncmp(table[position].label, value.label, LABEL_LENGTH))
@@ -28,7 +30,7 @@ int insertLabel(Symbol *table, size_t size, Symbol value)
 
 int findLabel(Symbol *table, size_t size, const char *label)
 {
-    int position = getHash(label, size);
+    int position = getLabelHash(label, size);
     while(table[position].used == SYMBOL_USED)
     {
         if(!strncmp(table[position].label, label, LABEL_LENGTH))
@@ -37,5 +39,5 @@ int findLabel(Symbol *table, size_t size, const char *label)
         }
         position = (position + 1) % size;
     }
-    return FIND_FAILED;
+    return NOT_FOUND;
 }
