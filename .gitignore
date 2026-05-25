@@ -4,6 +4,7 @@ cmake-build-*/
 out/
 bin/
 lib/
+.idea/
 
 # CMake generated files
 CMakeCache.txt
@@ -53,6 +54,15 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# CLion "Remote Development" or "Gateway" features
+.remote-build-state.json
+
+# Performance profiling and coverage (common in CLion)
+*.gcda
+*.gcno
+*.gcov
+core.*
 
 # QtCreator
 *.pro.user
