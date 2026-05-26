@@ -24,8 +24,6 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // Pass the 'input_file' for the first pass
-
     FILE* output_file = fopen(output_path, "w");
     if (!output_file)
     {
@@ -33,9 +31,15 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    SymbolTable table = createSymbolTable(TOTAL_CAPACITY);
+    analyzeLabels(input_file, &table);
+    rewind(input_file);
+
     // Pass the 'output_file' for the output
 
+    destroySymbolTable(&table);
     fclose(input_file);
     fclose(output_file);
+
     return EXIT_SUCCESS;
 }
