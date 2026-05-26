@@ -1,11 +1,7 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
 
-#define LABEL_LENGTH 8
-#define ARGUMENT_LENGTH 8
-#define COMMENT_LENGTH 256
-
-#include <stdint.h>
+#include "general.h"
 
 typedef enum Function {
     UnknownInstruction = -1,
