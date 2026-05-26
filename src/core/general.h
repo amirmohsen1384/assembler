@@ -20,6 +20,8 @@
 
 #define ANALYSIS_FAILED -1
 
+#define TOTAL_CAPACITY 101
+
 typedef uint32_t Word;
 typedef uint8_t Byte;
 
