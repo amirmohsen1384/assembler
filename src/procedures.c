@@ -28,7 +28,10 @@ int analyzeLabels(FILE *file, SymbolTable *table)
         else if (info.function == Space)
         {
             Word offset = atoi(info.arguments[0]);
-            pc += offset;
+            if (offset != 0)
+            {
+                pc += offset;
+            }
         }
         else
         {
