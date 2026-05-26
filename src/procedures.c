@@ -17,7 +17,7 @@ int analyzeLabels(FILE *file, SymbolTable *table)
             {
                 Symbol symbol;
                 symbol.pc = pc;
-                strncpy(symbol.label, label, LABEL_LENGTH);
+                strncpy(symbol.label, info.label, LABEL_LENGTH);
                 insertSymbol(table, symbol);
             }
             else
