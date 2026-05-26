@@ -22,7 +22,6 @@ typedef struct SymbolTable
 }
 SymbolTable;
 
-int getLabelHash(const char *label, size_t capacity);
 SymbolTable createSymbolTable(size_t capacity);
 void destroySymbolTable(SymbolTable *table);
 
