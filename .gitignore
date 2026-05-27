@@ -5,7 +5,6 @@ out/
 bin/
 lib/
 .idea/
-tests/
 .qtcreator/
 
 # CMake generated files
