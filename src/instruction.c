@@ -158,7 +158,7 @@ FunctionFormat getFormat(const Function function)
 InstructionInfo parseLine(const char *line)
 {
     InstructionInfo result;
-    char buffer[COMMENT_LENGTH + LABEL_LENGTH + 3 * ARGUMENT_LENGTH + 64];
+    char buffer[BUFFER_MAX];
     char *tokens[5] = {NULL, NULL, NULL, NULL, NULL};
     char *commentStart = NULL;
     size_t tokenCount = 0;
