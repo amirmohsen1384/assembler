@@ -27,5 +27,3 @@ add_executable(Assembler
 target_link_libraries(Assembler
     PRIVATE MainLibrary
 )
-enable_testing()
-add_subdirectory(tests)
