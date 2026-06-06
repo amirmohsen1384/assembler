@@ -6,9 +6,13 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_library(MainLibrary
+    src/instruction.c
+    src/general.h
+    src/instruction.h
+    src/table.h
+    src/procedures.h
     src/procedures.c
-    src/core/table.c
-    src/core/instruction.c
+    src/table.c
 )
 
 target_include_directories(MainLibrary
