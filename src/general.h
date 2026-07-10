@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define LABEL_LENGTH 8
-#define ARGUMENT_LENGTH 8
+#define LABEL_LENGTH 7
+#define ARGUMENT_LENGTH 32
 #define COMMENT_LENGTH 256
 
 #define SYMBOL_UNUSED 0
