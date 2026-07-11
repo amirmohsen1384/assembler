@@ -11,26 +11,10 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    char input_path[BUFFER_MAX];
-    strncpy(input_path, argv[1], BUFFER_MAX - 1);
-    input_path[BUFFER_MAX - 1] = '\0';
-
-    char output_path[BUFFER_MAX];
-    strncpy(output_path, argv[2], BUFFER_MAX - 1);
-    output_path[BUFFER_MAX - 1] = '\0';
-
-    FILE *input_file = fopen(input_path, "r");
+    FILE *input_file = fopen(argv[1], "r");
     if (!input_file)
     {
         fprintf(stderr, "Failed to open the assembly file. Please try again later.");
-        return EXIT_FAILURE;
-    }
-
-    FILE *output_file = fopen(output_path, "w");
-    if (!output_file)
-    {
-        fclose(input_file);
-        fprintf(stderr, "Failed to open a file for the output. Please try again later.");
         return EXIT_FAILURE;
     }
 
@@ -39,14 +23,26 @@ int main(int argc, char **argv)
     if (analyzeLabels(input_file, table) == ANALYSIS_FAILED)
     {
         fclose(input_file);
-        fclose(output_file);
         return EXIT_FAILURE;
     }
 
     rewind(input_file);
 
+    FILE *output_file = fopen(argv[2], "w");
+    if (!output_file)
+    {
+        fclose(input_file);
+        fprintf(stderr, "Failed to open a file for the output. Please try again later.");
+        return EXIT_FAILURE;
+    }
+
+    int exitCode = EXIT_SUCCESS;
+    if(assembleFile(input_file, output_file, table))
+    {
+        fprintf(stderr, "Failed to open a file for the output. Please try again later.");
+        exitCode = EXIT_FAILURE;
+    }
     fclose(input_file);
     fclose(output_file);
-
-    return EXIT_SUCCESS;
+    return exitCode;
 }
