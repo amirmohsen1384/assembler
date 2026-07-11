@@ -133,10 +133,12 @@ InstructionInfo parseLine(const char *line)
     char *hash = strchr(buffer, '#');
     if (hash != NULL)
     {
-        strncpy(result.comment, hash, COMMENT_LENGTH - 1);
+        strncpy(result.comment, hash + 1, COMMENT_LENGTH - 1);
         result.comment[COMMENT_LENGTH - 1] = '\0';
         *hash = '\0';
+        trim(result.comment);
     }
+
     trim(buffer);
     if (buffer[0] == '\0')
     {
