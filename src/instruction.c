@@ -22,7 +22,7 @@ void trim(char *s)
     s[len] = '\0';
 }
 
-static Function parseFunctionName(const char *token)
+Function parseFunctionName(const char *token)
 {
     if (strcmp(token, "add") == 0) {
         return Add;
@@ -114,10 +114,9 @@ FunctionFormat getFormat(const Function function)
 
 InstructionInfo parseLine(const char *line)
 {
-    char* tokens[5] = {NULL, NULL, NULL, NULL, NULL};
-    char* commentStart = NULL;
+    char *tokens[5] = {NULL, NULL, NULL, NULL, NULL};
     char buffer[BUFFER_MAX];
-    InstructionInfo result;
+    InstructionInfo result = {0};
     size_t tokenCount = 0;
     char *p = NULL;
 
@@ -128,19 +127,15 @@ InstructionInfo parseLine(const char *line)
         return result;
     }
 
-    strncpy(buffer, line, BUFFER_MAX);
+    strncpy(buffer, line, BUFFER_MAX - 1);
+    buffer[BUFFER_MAX - 1] = '\0';
+
+    char *hash = strchr(buffer, '#');
+    if (hash != NULL)
     {
-        char *hash = strchr(buffer, '#');
-        commentStart = NULL;
-        if (hash != NULL)
-        {
-            commentStart = hash;
-        }
-        if (commentStart != NULL)
-        {
-            strncpy(result.comment, commentStart, COMMENT_LENGTH);
-            *commentStart = '\0';
-        }
+        strncpy(result.comment, hash, COMMENT_LENGTH - 1);
+        result.comment[COMMENT_LENGTH - 1] = '\0';
+        *hash = '\0';
     }
     trim(buffer);
     if (buffer[0] == '\0')
@@ -148,10 +143,11 @@ InstructionInfo parseLine(const char *line)
         return result;
     }
 
-    p = strtok(buffer, "\t,\r\n");
+    p = strtok(buffer, " \t,\r\n");
     while (p != NULL && tokenCount < 5)
     {
-        tokens[tokenCount++] = p;
+        tokens[tokenCount] = p;
+        tokenCount++;
         p = strtok(NULL, " \t,\r\n");
     }
 
@@ -163,29 +159,34 @@ InstructionInfo parseLine(const char *line)
     result.function = parseFunctionName(tokens[0]);
     if (result.function != UnknownInstruction)
     {
-        for (size_t i = 1; i < tokenCount && result.argumentCount < 3; ++i)
+        for (size_t i = 1; i < tokenCount && result.argumentCount < 3; i++)
         {
-            strncpy(result.arguments[result.argumentCount], tokens[i], ARGUMENT_LENGTH);
-            ++result.argumentCount;
+            strncpy(result.arguments[result.argumentCount], tokens[i], ARGUMENT_LENGTH - 1);
+            result.arguments[result.argumentCount][ARGUMENT_LENGTH - 1] = '\0';
+            result.argumentCount++;
         }
     }
     else
     {
-        strncpy(result.label, tokens[0], LABEL_LENGTH);
+        strncpy(result.label, tokens[0], LABEL_LENGTH - 1);
+        result.label[LABEL_LENGTH - 1] = '\0';
+
         if (tokenCount >= 2)
         {
             result.function = parseFunctionName(tokens[1]);
-            for (size_t i = 2; i < tokenCount && result.argumentCount < 3; ++i)
+
+            for (size_t i = 2; i < tokenCount && result.argumentCount < 3; i++)
             {
-                strncpy(result.arguments[result.argumentCount], tokens[i], ARGUMENT_LENGTH);
-                ++result.argumentCount;
+                strncpy(result.arguments[result.argumentCount], tokens[i], ARGUMENT_LENGTH - 1);
+                result.arguments[result.argumentCount][ARGUMENT_LENGTH - 1] = '\0';
+                result.argumentCount++;
             }
         }
     }
     return result;
 }
 
-Word generateJFormatMachineCode(Function function, Byte rt)
+Word generateJFormatMachineCode(Function function, Word rt)
 {
     Word opcode = (Word) function;
     return (opcode << 24) | rt;
