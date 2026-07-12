@@ -10,10 +10,8 @@
 #define SYMBOL_UNUSED 0
 #define SYMBOL_USED 1
 
-#define OUT_OF_SPACE -2
-#define INSERT_FAILED -1
-
 #define NOT_FOUND -1
+#define INVALID_POSITION -1
 
 #define TOTAL_ARGS 3
 #define BUFFER_MAX 256
