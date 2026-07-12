@@ -4,19 +4,23 @@
 
 void trim(char *s)
 {
-    if (s == NULL) {
+    if (s == NULL)
+    {
         return;
     }
     size_t start = 0;
     size_t end = strlen(s);
-    while (isspace(s[start])) {
+    while (isspace(s[start]))
+    {
         start++;
     }
-    while (end > start && isspace(s[end - 1])) {
+    while (end > start && isspace(s[end - 1]))
+    {
         end--;
     }
     size_t len = end - start;
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++)
+    {
         s[i] = s[start + i];
     }
     s[len] = '\0';
@@ -24,55 +28,72 @@ void trim(char *s)
 
 Function parseFunctionName(const char *token)
 {
-    if (strcmp(token, "add") == 0) {
+    if (strcmp(token, "add") == 0)
+    {
         return Add;
     }
-    if (strcmp(token, "sub") == 0) {
+    if (strcmp(token, "sub") == 0)
+    {
         return Subtract;
     }
-    if (strcmp(token, "slt") == 0) {
+    if (strcmp(token, "slt") == 0)
+    {
         return SetLessThan;
     }
-    if (strcmp(token, "or") == 0) {
+    if (strcmp(token, "or") == 0)
+    {
         return Or;
     }
-    if (strcmp(token, "nand") == 0) {
+    if (strcmp(token, "nand") == 0)
+    {
         return Nand;
     }
-    if (strcmp(token, "addi") == 0) {
+    if (strcmp(token, "addi") == 0)
+    {
         return AddImmediate;
     }
-    if (strcmp(token, "slti") == 0) {
+    if (strcmp(token, "slti") == 0)
+    {
         return SetLessThanImmediate;
     }
-    if (strcmp(token, "ori") == 0) {
+    if (strcmp(token, "ori") == 0)
+    {
         return OrImmediate;
     }
-    if (strcmp(token, "lui") == 0) {
+    if (strcmp(token, "lui") == 0)
+    {
         return LoadUpperImmediate;
     }
-    if (strcmp(token, "lw") == 0) {
+    if (strcmp(token, "lw") == 0)
+    {
         return LoadWord;
     }
-    if (strcmp(token, "sw") == 0) {
+    if (strcmp(token, "sw") == 0)
+    {
         return SaveWord;
     }
-    if (strcmp(token, "beq") == 0) {
+    if (strcmp(token, "beq") == 0)
+    {
         return BranchEqual;
     }
-    if (strcmp(token, "jalr") == 0) {
+    if (strcmp(token, "jalr") == 0)
+    {
         return JumpAndLink;
     }
-    if (strcmp(token, "j") == 0) {
+    if (strcmp(token, "j") == 0)
+    {
         return Jump;
     }
-    if (strcmp(token, "halt") == 0) {
+    if (strcmp(token, "halt") == 0)
+    {
         return Halt;
     }
-    if (strcmp(token, ".fill") == 0) {
+    if (strcmp(token, ".fill") == 0)
+    {
         return Fill;
     }
-    if (strcmp(token, ".space") == 0) {
+    if (strcmp(token, ".space") == 0)
+    {
         return Space;
     }
     return UnknownInstruction;
@@ -80,12 +101,14 @@ Function parseFunctionName(const char *token)
 
 FunctionFormat getFormat(const Function function)
 {
-    switch (function) {
+    switch (function)
+    {
         case Add:
         case Subtract:
         case SetLessThan:
         case Or:
-        case Nand: {
+        case Nand:
+        {
             return RFormat;
         }
         case AddImmediate:
@@ -95,28 +118,32 @@ FunctionFormat getFormat(const Function function)
         case LoadWord:
         case SaveWord:
         case BranchEqual:
-        case JumpAndLink: {
+        case JumpAndLink:
+        {
             return IFormat;
         }
         case Jump:
-        case Halt: {
+        case Halt:
+        {
             return JFormat;
         }
         case Fill:
-        case Space: {
+        case Space:
+        {
             return Directive;
         }
-        default: {
+        default:
+        {
             return UnknownFormat;
         }
     }
 }
 
-InstructionInfo parseLine(const char *line)
+InstructionInfo parseLine(const char *line, LineParsingErrorGroup *error)
 {
     char *tokens[5] = {NULL, NULL, NULL, NULL, NULL};
-    char buffer[BUFFER_MAX];
     InstructionInfo result = {0};
+    char buffer[BUFFER_MAX];
     size_t tokenCount = 0;
     char *p = NULL;
 
@@ -124,6 +151,10 @@ InstructionInfo parseLine(const char *line)
     result.argumentCount = 0;
     if (line == NULL)
     {
+        if (error != NULL)
+        {
+            *error = EmptyLine;
+        }
         return result;
     }
 
@@ -142,6 +173,10 @@ InstructionInfo parseLine(const char *line)
     trim(buffer);
     if (buffer[0] == '\0')
     {
+        if (error != NULL)
+        {
+            *error = EmptyLine;
+        }
         return result;
     }
 
@@ -152,9 +187,12 @@ InstructionInfo parseLine(const char *line)
         tokenCount++;
         p = strtok(NULL, " \t,\r\n");
     }
-
     if (tokenCount == 0)
     {
+        if (error != NULL)
+        {
+            *error = UnknownLineFormat;
+        }
         return result;
     }
 
@@ -172,11 +210,9 @@ InstructionInfo parseLine(const char *line)
     {
         strncpy(result.label, tokens[0], LABEL_LENGTH - 1);
         result.label[LABEL_LENGTH - 1] = '\0';
-
         if (tokenCount >= 2)
         {
             result.function = parseFunctionName(tokens[1]);
-
             for (size_t i = 2; i < tokenCount && result.argumentCount < 3; i++)
             {
                 strncpy(result.arguments[result.argumentCount], tokens[i], ARGUMENT_LENGTH - 1);
@@ -184,6 +220,10 @@ InstructionInfo parseLine(const char *line)
                 result.argumentCount++;
             }
         }
+    }
+    if (error != NULL)
+    {
+        *error = NoLineParsingError;
     }
     return result;
 }
