@@ -17,6 +17,7 @@
 #define BUFFER_MAX 256
 
 #define TOTAL_CAPACITY 101
+#define MAX_REGISTERS 16
 
 typedef uint32_t Word;
 typedef uint8_t Byte;
