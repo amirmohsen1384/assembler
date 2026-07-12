@@ -1,18 +1,30 @@
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include "logger.h"
 #include "procedures.h"
 #include "instruction.h"
 
-int isNumber(char text[])
+typedef enum
+{
+    NoAssemblyError,
+    InvalidRegisterNumber,
+    UndefinedRegister,
+    UndefinedLabel,
+    InvalidArguments,
+    InvalidOffset,
+    UndefinedOpcode,
+    NegativeArgument
+}
+AssemblyError;
+
+static int isNumber(const char* text)
 {
     int i = 0;
-
     if (text[0] == '-' || text[0] == '+')
     {
         i = 1;
     }
-
     if (text[i] == '\0')
     {
         return 0;
@@ -26,89 +38,16 @@ int isNumber(char text[])
         }
         i++;
     }
-
     return 1;
 }
 
-int readNumber(char text[], int *value)
+static int readNumber(const char* text, int *value)
 {
     if (!isNumber(text))
     {
         return 0;
     }
-
     *value = atoi(text);
-    return 1;
-}
-
-int readRegister(char text[], int *value)
-{
-    int number = 0;
-
-    if (!readNumber(text, &number))
-    {
-        return 0;
-    }
-
-    if (number < 0 || number > 15)
-    {
-        return 0;
-    }
-
-    *value = number;
-    return 1;
-}
-
-int getLabelValue(Symbol table[], char label[], int *value)
-{
-    int position = findByLabel(table, label);
-
-    if (position == NOT_FOUND)
-    {
-        return 0;
-    }
-
-    *value = table[position].pc;
-    return 1;
-}
-
-int readNumberOrLabel(Symbol table[], char text[], int *value)
-{
-    if (readNumber(text, value))
-    {
-        return 1;
-    }
-
-    return getLabelValue(table, text, value);
-}
-
-int checkSigned16(int value)
-{
-    if (value < -32768 || value > 32767)
-    {
-        return 0;
-    }
-
-    return 1;
-}
-
-int checkUnsigned16(int value)
-{
-    if (value < 0 || value > 65535)
-    {
-        return 0;
-    }
-
-    return 1;
-}
-
-int checkArgs(InstructionInfo info, int count)
-{
-    if ((int)info.argumentCount != count)
-    {
-        return 0;
-    }
-
     return 1;
 }
 
@@ -116,57 +55,87 @@ int analyzeLabels(FILE *file, Symbol table[])
 {
     int pc = 0;
     char buffer[BUFFER_MAX];
-
-    while (fgets(buffer, BUFFER_MAX, file) != NULL)
+    int result = EXIT_SUCCESS;
+    for (int lineNumber = 1; fgets(buffer, BUFFER_MAX, file) != NULL; ++lineNumber)
     {
-        InstructionInfo info = parseLine(buffer);
-
-        if (info.function == UnknownInstruction && info.label[0] == '\0')
+        LineParsingError lineError = NoLineParsingError;
+        InstructionInfo info = parseLine(buffer, &lineError);
+        if (lineError != NoLineParsingError)
         {
-            continue;
-        }
-
-        if (info.label[0] != '\0')
-        {
-            int position = findByLabel(table, info.label);
-
-            if (position != NOT_FOUND)
+            switch (lineError)
             {
-                return ANALYSIS_FAILED;
+                case EmptyLine:
+                {
+                    logDebug("Label Analysis", "line %d: Identified an empty line", lineNumber);
+                    continue;
+                }
+                case UnknownLineFormat:
+                {
+                    logError("Label Analysis", "Error at line %d: Found invalid line \"%s\".", lineNumber, buffer);
+                    result = EXIT_FAILURE;
+                    continue;
+                }
+                default:
+                {
+                    logError("Label Analysis", "Error at line %d: Unknown error happened.", lineNumber);
+                    result = EXIT_FAILURE;
+                    continue;
+                }
             }
-
+        }
+        else if (info.label[0] != '\0')
+        {
             Symbol symbol = {0};
             symbol.pc = pc;
             symbol.isUsed = SYMBOL_USED;
-
             strncpy(symbol.label, info.label, LABEL_LENGTH - 1);
             symbol.label[LABEL_LENGTH - 1] = '\0';
 
-            if (insertSymbol(table, symbol) < 0)
+            SymbolTableError tableError;
+            insertSymbol(table, symbol, &tableError);
+            if (tableError != NoSymbolTableError)
             {
-                return ANALYSIS_FAILED;
+                switch (tableError)
+                {
+                    case LabelAlreadyExists:
+                    {
+                        logError("Label Analysis", "Error at line %d: Label \"%s\" already exists.", lineNumber, symbol.label);
+                        result = EXIT_FAILURE;
+                        continue;
+                    }
+                    case FullSymbolTable:
+                    {
+                        logError("Label Analysis", "Error at line %d: The table has no capacity for \"%s\".", lineNumber, symbol.label);
+                        result = EXIT_FAILURE;
+                        continue;
+                    }
+                    default:
+                    {
+                        logError("Label Analysis", "Error at line %d: Unknown error happened.", lineNumber);
+                        result = EXIT_FAILURE;
+                        continue;
+                    }
+                }
             }
         }
-
         if (info.function == Space)
         {
             int count = 0;
-
-            if (!checkArgs(info, 1))
+            if (info.argumentCount != 1)
             {
-                return ANALYSIS_FAILED;
+                logError("Label Analysis", "Error at line %d: The entered arguments are %d, but expected 1.", lineNumber, info.argumentCount);
+                result = EXIT_FAILURE;
             }
-
-            if (!readNumber(info.arguments[0], &count))
+            else if (!readNumber(info.arguments[0], &count))
             {
-                return ANALYSIS_FAILED;
+                logError("Label Analysis", "Error at line %d: The first argument \"%s\" is invalid.", lineNumber, info.arguments[0]);
+                result = EXIT_FAILURE;
             }
-
-            if (count < 0)
+            else if (count < 0)
             {
-                return ANALYSIS_FAILED;
+                logError("Label Analysis", "Error at line %d: Negative numbers are not accepted", lineNumber);
+                result = EXIT_FAILURE;
             }
-
             pc += count;
         }
         else
@@ -174,295 +143,357 @@ int analyzeLabels(FILE *file, Symbol table[])
             pc++;
         }
     }
-
-    return pc;
+    return result;
 }
 
-int assembleR(InstructionInfo info, Word *code)
+static AssemblyError readRegister(const char* text, int *value)
+{
+    int number = 0;
+    if (!readNumber(text, &number))
+    {
+        return InvalidRegisterNumber;
+    }
+    else if (number < 0 || number >= MAX_REGISTERS)
+    {
+        return UndefinedRegister;
+    }
+    *value = number;
+    return NoAssemblyError;
+}
+
+static AssemblyError getLabelValue(Symbol table[], const char* label, int* value)
+{
+    int position = findByLabel(table, label);
+    if (position == NOT_FOUND)
+    {
+        return UndefinedLabel;
+    }
+    *value = table[position].pc;
+    return NoAssemblyError;
+}
+
+static AssemblyError readNumberOrLabel(Symbol table[], const char *text, int *value)
+{
+    int number = 0;
+    if (readNumber(text, &number))
+    {
+        *value = number;
+        return NoAssemblyError;
+    }
+    return getLabelValue(table, text, value);
+}
+
+static int isSigned16(int value)
+{
+    return value <= 32767 && value >= -32768;
+}
+
+static int isUnsigned16(int value)
+{
+    return value <= 65535 && value >= 0;
+}
+
+static AssemblyError assembleR(InstructionInfo info, Word *code)
 {
     int rd = 0;
     int rs = 0;
     int rt = 0;
-
-    if (!checkArgs(info, 3))
+    if (info.argumentCount != 3)
     {
-        return 0;
+        return InvalidArguments;
     }
 
-    if (!readRegister(info.arguments[0], &rd))
+    AssemblyError error = readRegister(info.arguments[0], &rd);
+    if (error != NoAssemblyError)
     {
-        return 0;
+        return error;
     }
 
-    if (!readRegister(info.arguments[1], &rs))
+    error = readRegister(info.arguments[1], &rs);
+    if (error != NoAssemblyError)
     {
-        return 0;
+        return error;
     }
 
-    if (!readRegister(info.arguments[2], &rt))
+    error = readRegister(info.arguments[2], &rt);
+    if (error != NoAssemblyError)
     {
-        return 0;
+        return error;
     }
 
     *code = generateRFormatMachineCode(info.function, rd, rs, rt);
-    return 1;
+    return NoAssemblyError;
 }
 
-int assembleI(InstructionInfo info, Symbol table[], int pc, Word *code)
+static AssemblyError assembleI(InstructionInfo info, Symbol table[], int pc, Word *code)
 {
     int rs = 0;
     int rt = 0;
     int offset = 0;
-
     if (info.function == LoadUpperImmediate)
     {
-        if (!checkArgs(info, 2))
+        if (info.argumentCount != 2)
         {
-            return 0;
+            return InvalidArguments;
         }
 
-        if (!readRegister(info.arguments[0], &rt))
+        AssemblyError error = readRegister(info.arguments[0], &rt);
+        if (error != NoAssemblyError)
         {
-            return 0;
+            return error;
         }
 
-        if (!readNumberOrLabel(table, info.arguments[1], &offset))
+        error = readNumberOrLabel(table, info.arguments[1], &offset);
+        if (error != NoAssemblyError)
         {
-            return 0;
+            return error;
         }
-
-        if (!checkSigned16(offset))
+        else if (!isSigned16(offset))
         {
-            return 0;
+            return InvalidOffset;
         }
-
         rs = 0;
         *code = generateIFormatMachineCode(info.function, rs, rt, offset & 0xFFFF);
-        return 1;
+        return NoAssemblyError;
     }
-
-    if (info.function == JumpAndLink)
+    else if (info.function == JumpAndLink)
     {
-        if (!checkArgs(info, 2))
-        {
-            return 0;
-        }
-
-        if (!readRegister(info.arguments[0], &rt))
-        {
-            return 0;
-        }
-
-        if (!readRegister(info.arguments[1], &rs))
-        {
-            return 0;
-        }
-
         offset = 0;
+        if (info.argumentCount != 2)
+        {
+            return InvalidArguments;
+        }
+
+        AssemblyError error = readRegister(info.arguments[0], &rt);
+        if (error != NoAssemblyError)
+        {
+            return error;
+        }
+
+        error = readRegister(info.arguments[1], &rs);
+        if (error != NoAssemblyError)
+        {
+            return error;
+        }
+
         *code = generateIFormatMachineCode(info.function, rs, rt, offset);
-        return 1;
+        return NoAssemblyError;
+    }
+    else if (info.argumentCount != 3)
+    {
+        return InvalidArguments;
     }
 
-    if (!checkArgs(info, 3))
+    AssemblyError error = readRegister(info.arguments[0], &rt);
+    if (error != NoAssemblyError)
     {
-        return 0;
+        return error;
     }
 
-    if (!readRegister(info.arguments[0], &rt))
+    error = readRegister(info.arguments[1], &rs);
+    if (error != NoAssemblyError)
     {
-        return 0;
-    }
-
-    if (!readRegister(info.arguments[1], &rs))
-    {
-        return 0;
+        return error;
     }
 
     if (info.function == BranchEqual)
     {
         int labelAddress = 0;
-
-        if (!readNumberOrLabel(table, info.arguments[2], &labelAddress))
+        error = readNumberOrLabel(table, info.arguments[2], &labelAddress);
+        if (error != NoAssemblyError)
         {
-            return 0;
+            return error;
         }
-
         offset = labelAddress - pc - 1;
-
-        if (!checkSigned16(offset))
+        if (!isSigned16(offset))
         {
-            return 0;
+            return InvalidOffset;
         }
-
         *code = generateIFormatMachineCode(info.function, rs, rt, offset & 0xFFFF);
-        return 1;
+        return NoAssemblyError;
     }
 
-    if (!readNumberOrLabel(table, info.arguments[2], &offset))
+    error = readNumberOrLabel(table, info.arguments[2], &offset);
+    if (error != NoAssemblyError)
     {
-        return 0;
+        return error;
     }
-
-    if (!checkSigned16(offset))
+    else if (!isSigned16(offset))
     {
-        return 0;
+        return InvalidOffset;
     }
-
     *code = generateIFormatMachineCode(info.function, rs, rt, offset & 0xFFFF);
-    return 1;
+    return NoAssemblyError;
 }
 
-int assembleJ(InstructionInfo info, Symbol table[], Word *code)
+static AssemblyError assembleJ(InstructionInfo info, Symbol table[], Word *code)
 {
     int address = 0;
-
     if (info.function == Halt)
     {
-        if (!checkArgs(info, 0))
+        if (info.argumentCount != 0)
         {
-            return 0;
+            return InvalidArguments;
         }
-
         *code = generateJFormatMachineCode(info.function, 0);
-        return 1;
+        return NoAssemblyError;
     }
-
-    if (info.function == Jump)
+    else if (info.function == Jump)
     {
-        if (!checkArgs(info, 1))
+        if (info.argumentCount != 1)
         {
-            return 0;
+            return InvalidArguments;
         }
 
-        if (!readNumberOrLabel(table, info.arguments[0], &address))
+        AssemblyError error = readNumberOrLabel(table, info.arguments[0], &address);
+        if (error != NoAssemblyError)
         {
-            return 0;
+            return error;
         }
-
-        if (!checkUnsigned16(address))
+        else if (!isUnsigned16(address))
         {
-            return 0;
+            return InvalidOffset;
         }
-
         *code = generateJFormatMachineCode(info.function, address);
-        return 1;
+        return NoAssemblyError;
     }
-
-    return 0;
+    else
+    {
+        return UndefinedOpcode;
+    }
 }
 
-int assembleDirective(InstructionInfo info, Symbol table[], FILE *output, int *pc)
+static AssemblyError assembleDirective(InstructionInfo info, Symbol table[], FILE *output, int *pc)
 {
     int value = 0;
-
     if (info.function == Fill)
     {
-        if (!checkArgs(info, 1))
+        if (info.argumentCount != 1)
         {
-            return 0;
+            return InvalidArguments;
         }
 
-        if (!readNumberOrLabel(table, info.arguments[0], &value))
+        AssemblyError error = readNumberOrLabel(table, info.arguments[0], &value);
+        if (error != NoAssemblyError)
         {
-            return 0;
+            return error;
         }
 
         fprintf(output, "%d\n", value);
         (*pc)++;
-        return 1;
+        return NoAssemblyError;
     }
-
-    if (info.function == Space)
+    else if (info.function == Space)
     {
         int count = 0;
-
-        if (!checkArgs(info, 1))
+        if (info.argumentCount != 1)
         {
-            return 0;
+            return InvalidArguments;
         }
-
         if (!readNumber(info.arguments[0], &count))
         {
-            return 0;
+            return InvalidOffset;
         }
-
-        if (count < 0)
+        else if (count < 0)
         {
-            return 0;
+            return NegativeArgument;
         }
-
         for (int i = 0; i < count; i++)
         {
             fprintf(output, "0\n");
             (*pc)++;
         }
 
-        return 1;
+        return NoAssemblyError;
     }
-
-    return 0;
+    else
+    {
+        return UndefinedOpcode;
+    }
 }
 
 int assembleFile(FILE *input, FILE *output, Symbol table[])
 {
-    char buffer[BUFFER_MAX];
     int pc = 0;
+    int result = EXIT_SUCCESS;
+    char buffer[BUFFER_MAX];
 
-    while (fgets(buffer, BUFFER_MAX, input) != NULL)
+    for (int lineNumber = 1; fgets(buffer, BUFFER_MAX, input) != NULL; lineNumber++)
     {
         Word code = 0;
-        InstructionInfo info = parseLine(buffer);
+
+        InstructionInfo info = parseLine(buffer, NULL);
         FunctionFormat format = getFormat(info.function);
-
-        if (info.function == UnknownInstruction && info.label[0] == '\0')
+        AssemblyError error = NoAssemblyError;
+        switch (format)
         {
+            case RFormat: {
+                error = assembleR(info, &code);
+                break;
+            }
+            case IFormat: {
+                error = assembleI(info, table, pc, &code);
+                break;
+            }
+            case JFormat: {
+                error = assembleJ(info, table, &code);
+                break;
+            }
+            case Directive: {
+                error = assembleDirective(info, table, output, &pc);
+                if (error == NoAssemblyError) {
+                    continue;
+                }
+                break;
+            }
+            default: {
+                logError("Assembly", "Error at line %d: Unknown instruction.", lineNumber);
+                result = EXIT_FAILURE;
+                continue;
+            }
+        }
+        if (error != NoAssemblyError)
+        {
+            result = EXIT_FAILURE;
+            switch (error)
+            {
+                case InvalidArguments: {
+                    logError("Assembly", "Error at line %d: Invalid number of arguments", lineNumber);
+                    break;
+                }
+                case InvalidRegisterNumber: {
+                    logError("Assembly", "Error at line %d: Found an invalid register number", lineNumber);
+                    break;
+                }
+                case UndefinedRegister: {
+                    logError("Assembly", "Error at line %d: Register number is out of range (0-15)", lineNumber);
+                    break;
+                }
+                case UndefinedLabel: {
+                    logError("Assembly", "Error at line %d: Undefined label", lineNumber);
+                    break;
+                }
+                case InvalidOffset: {
+                    logError("Assembly", "Error at line %d: Offset is outside the 16-bit range", lineNumber);
+                    break;
+                }
+                case NegativeArgument: {
+                    logError("Assembly", "Error at line %d: Negative value is not allowed", lineNumber);
+                    break;
+                }
+                case UndefinedOpcode: {
+                    logError("Assembly", "Error at line %d: Undefined opcode", lineNumber);
+                    break;
+                }
+                default: {
+                    logError("Assembly", "Error at line %d: Unknown assembly error", lineNumber);
+                    break;
+                }
+            }
             continue;
         }
-
-        if (format == UnknownFormat)
-        {
-            return ANALYSIS_FAILED;
-        }
-
-        if (format == Directive)
-        {
-            if (!assembleDirective(info, table, output, &pc))
-            {
-                return ANALYSIS_FAILED;
-            }
-
-            continue;
-        }
-
-        if (format == RFormat)
-        {
-            if (!assembleR(info, &code))
-            {
-                return ANALYSIS_FAILED;
-            }
-        }
-        else if (format == IFormat)
-        {
-            if (!assembleI(info, table, pc, &code))
-            {
-                return ANALYSIS_FAILED;
-            }
-        }
-        else if (format == JFormat)
-        {
-            if (!assembleJ(info, table, &code))
-            {
-                return ANALYSIS_FAILED;
-            }
-        }
-        else
-        {
-            return ANALYSIS_FAILED;
-        }
-
         fprintf(output, "%u\n", code);
         pc++;
     }
-
-    return 0;
+    return result;
 }
