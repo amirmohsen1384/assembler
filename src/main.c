@@ -1,25 +1,25 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include "logger.h"
 #include "procedures.h"
 
 int main(int argc, char **argv)
 {
+    initializeLogger();
     if (argc < TOTAL_ARGS)
     {
-        printf("You have not entered the input and output file.");
+        logError("You have not entered the input and output file.");
         return EXIT_FAILURE;
     }
 
     FILE *input_file = fopen(argv[1], "r");
     if (!input_file)
     {
-        fprintf(stderr, "Failed to open the assembly file. Please try again later.");
+        logError("Failed to open the assembly file.");
         return EXIT_FAILURE;
     }
 
     Symbol table[TOTAL_CAPACITY] = {0};
-
     if (analyzeLabels(input_file, table) == ANALYSIS_FAILED)
     {
         fclose(input_file);
@@ -32,17 +32,19 @@ int main(int argc, char **argv)
     if (!output_file)
     {
         fclose(input_file);
-        fprintf(stderr, "Failed to open a file for the output. Please try again later.");
+        logError("Failed to open a file for the output.");
         return EXIT_FAILURE;
     }
 
     int exitCode = EXIT_SUCCESS;
     if(assembleFile(input_file, output_file, table))
     {
-        fprintf(stderr, "Failed to open a file for the output. Please try again later.");
+        logError("Failed to open a file for the output.");
         exitCode = EXIT_FAILURE;
     }
+
     fclose(input_file);
     fclose(output_file);
+    logInfo("The program compiled successfully.");
     return exitCode;
 }
