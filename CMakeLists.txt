@@ -13,6 +13,8 @@ add_library(MainLibrary
     src/procedures.h
     src/procedures.c
     src/table.c
+    src/logger.h
+    src/logger.c
 )
 
 target_include_directories(MainLibrary
