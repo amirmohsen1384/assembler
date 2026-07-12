@@ -1,5 +1,6 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
+
 #include <stddef.h>
 #include "general.h"
 
@@ -43,9 +44,24 @@ typedef enum InstructionFormat {
 }
 FunctionFormat;
 
-FunctionFormat getFormat(const Function function);
-InstructionInfo parseLine(const char* line);
+typedef enum
+{
+    NoLineParsingError = 0,
+    EmptyLine,
+    UnknownLineFormat,
+}
+LineParsingErrorGroup;
+
+struct LineParsingError
+{
+    LineParsingErrorGroup error;
+    int lineNumber;
+};
+
+InstructionInfo parseLine(const char *line, LineParsingErrorGroup* error);
+
 Function parseFunctionName(const char *token);
+FunctionFormat getFormat(const Function function);
 Word generateJFormatMachineCode(Function function, Word rt);
 Word generateRFormatMachineCode(Function function, Word rd, Word rs, Word rt);
 Word generateIFormatMachineCode(Function function, Word rs, Word rt, Word offset);
