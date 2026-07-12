@@ -75,7 +75,7 @@ void logWarning(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Warning, message, name, arguments);
+    vlog(Warning, name, message, arguments);
     va_end(arguments);
 }
 
@@ -83,7 +83,7 @@ void logError(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Error, message, name, arguments);
+    vlog(Error, name, message, arguments);
     va_end(arguments);
 }
 
@@ -91,7 +91,7 @@ void logDebug(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Debug, message, name, arguments);
+    vlog(Debug, name, message, arguments);
     va_end(arguments);
 }
 
@@ -99,6 +99,6 @@ void logInfo(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Info, message, name, arguments);
+    vlog(Info, name, message, arguments);
     va_end(arguments);
 }
