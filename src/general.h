@@ -18,8 +18,6 @@
 #define TOTAL_ARGS 3
 #define BUFFER_MAX 256
 
-#define ANALYSIS_FAILED -1
-
 #define TOTAL_CAPACITY 101
 
 typedef uint32_t Word;
