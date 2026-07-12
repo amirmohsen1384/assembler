@@ -43,7 +43,7 @@ static LoggingLevel currentLevel()
     return initializeLogger();
 }
 
-static void vlog(LoggingLevel level, const char *message, va_list arguments)
+static void vlog(LoggingLevel level, const char *name, const char *message, va_list arguments)
 {
     static const char* level_names[] = {"DEBUG", "INFO", "WARNING", "ERROR"};
     LoggingLevel current = currentLevel();
@@ -53,7 +53,7 @@ static void vlog(LoggingLevel level, const char *message, va_list arguments)
     }
     char timestamp[48];
     currentTimestamp(timestamp, sizeof(timestamp));
-    fprintf(stderr, "%s | [%s] | ", timestamp, level_names[level]);
+    fprintf(stderr, "%s | [%s] | %s | ", timestamp, level_names[level], name);
     vfprintf(stderr, message, arguments);
     fputc('\n', stderr);
     fflush(stderr);
@@ -71,34 +71,34 @@ LoggingLevel initializeLogger()
     return level;
 }
 
-void logWarning(const char *message, ...)
+void logWarning(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Warning, message, arguments);
+    vlog(Warning, message, name, arguments);
     va_end(arguments);
 }
 
-void logError(const char *message, ...)
+void logError(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Error, message, arguments);
+    vlog(Error, message, name, arguments);
     va_end(arguments);
 }
 
-void logDebug(const char *message, ...)
+void logDebug(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Debug, message, arguments);
+    vlog(Debug, message, name, arguments);
     va_end(arguments);
 }
 
-void logInfo(const char *message, ...)
+void logInfo(const char *name, const char *message,...)
 {
     va_list arguments;
     va_start(arguments, message);
-    vlog(Info, message, arguments);
+    vlog(Info, message, name, arguments);
     va_end(arguments);
 }
