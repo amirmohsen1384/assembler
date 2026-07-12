@@ -2,6 +2,7 @@
 #define TABLE_H
 
 #include "general.h"
+#include "errors.h"
 
 typedef struct Symbol
 {
@@ -11,7 +12,14 @@ typedef struct Symbol
 }
 Symbol;
 
-int insertSymbol(Symbol table[], Symbol value);
-int findByLabel(Symbol table[], const char *label);
+typedef enum {
+    NoSymbolTableError = 30,
+    LabelAlreadyExists,
+    FullSymbolTable
+}
+SymbolTableError;
+
+int findByLabel(Symbol table[], const char* label);
+int insertSymbol(Symbol table[], Symbol value, SymbolTableError* error);
 
 #endif
