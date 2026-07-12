@@ -421,10 +421,13 @@ int assembleFile(FILE *input, FILE *output, Symbol table[])
     for (int lineNumber = 1; fgets(buffer, BUFFER_MAX, input) != NULL; lineNumber++)
     {
         Word code = 0;
-
         InstructionInfo info = parseLine(buffer, NULL);
+        if (info.label[0] == '\0' && info.function == UnknownInstruction)
+        {
+            continue;
+        }
         FunctionFormat format = getFormat(info.function);
-        AssemblyError error = NoAssemblyError;
+        AssemblyError error;
         switch (format)
         {
             case RFormat: {
@@ -483,10 +486,6 @@ int assembleFile(FILE *input, FILE *output, Symbol table[])
                 }
                 case UndefinedOpcode: {
                     logError("Assembly", "Error at line %d: Undefined opcode", lineNumber);
-                    break;
-                }
-                default: {
-                    logError("Assembly", "Error at line %d: Unknown assembly error", lineNumber);
                     break;
                 }
             }
