@@ -2,7 +2,6 @@
 #define TABLE_H
 
 #include "general.h"
-#include "errors.h"
 
 typedef struct Symbol
 {
