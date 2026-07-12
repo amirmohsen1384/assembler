@@ -50,19 +50,12 @@ typedef enum
     EmptyLine,
     UnknownLineFormat,
 }
-LineParsingErrorGroup;
-
-struct LineParsingError
-{
-    LineParsingErrorGroup error;
-    int lineNumber;
-};
-
-InstructionInfo parseLine(const char *line, LineParsingErrorGroup* error);
+LineParsingError;
 
 Function parseFunctionName(const char *token);
 FunctionFormat getFormat(const Function function);
 Word generateJFormatMachineCode(Function function, Word rt);
+InstructionInfo parseLine(const char *line, LineParsingError* error);
 Word generateRFormatMachineCode(Function function, Word rd, Word rs, Word rt);
 Word generateIFormatMachineCode(Function function, Word rs, Word rt, Word offset);
 

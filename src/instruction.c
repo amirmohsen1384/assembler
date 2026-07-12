@@ -139,7 +139,7 @@ FunctionFormat getFormat(const Function function)
     }
 }
 
-InstructionInfo parseLine(const char *line, LineParsingErrorGroup *error)
+InstructionInfo parseLine(const char *line, LineParsingError* error)
 {
     char *tokens[5] = {NULL, NULL, NULL, NULL, NULL};
     InstructionInfo result = {0};
@@ -220,10 +220,6 @@ InstructionInfo parseLine(const char *line, LineParsingErrorGroup *error)
                 result.argumentCount++;
             }
         }
-    }
-    if (error != NULL)
-    {
-        *error = NoLineParsingError;
     }
     return result;
 }
